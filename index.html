@@ -150,7 +150,7 @@ button.ghost:hover{background:rgba(226,221,209,.14)}
     <button id="whisperbtn" type="button" hidden>WHISPER</button>
   </div>
 
-  <div id="scare" hidden><img id="scareimg" alt="" src="assets/scare.jpg?v=1f400ae84f"><div class="tint"></div></div>
+  <div id="scare" hidden><img id="scareimg" alt="" src="assets/scare.jpg?v=10652579db"><div class="tint"></div></div>
 
   <div class="overlay" id="start">
     <div class="card">
@@ -259,7 +259,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const $ = id => document.getElementById(id);
-const AV = '?v=1f400ae84f'; // asset version tag, filled in when the site is built
+const AV = '?v=10652579db'; // asset version tag, filled in when the site is built
 const rand = (a,b) => a + Math.random()*(b-a);
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 const smooth = (a,b,x) => { const t = clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
@@ -931,6 +931,7 @@ let locked=false, dragging=false, lastMX=0, lastMY=0, runTouch=false;
 const joy={id:null,ox:0,oy:0,x:0,y:0}, look={id:null,x:0,y:0};
 addEventListener('keydown',e=>{ keys[e.code]=true; if((e.code==='Escape'||e.code==='KeyP') && state==='play' && !locked) pauseGame(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
+addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; });
 document.addEventListener('pointerlockchange',()=>{ const was=locked; locked=document.pointerLockElement===canvas; if(was && !locked && state==='play') pauseGame(); });
 document.addEventListener('mousemove',e=>{
   if(state!=='play' && state!=='dying') return;
@@ -1449,7 +1450,9 @@ function mpSyncPresence(){
 // ----- incoming events -----
 function mpOnState(p){
   const o=MP.others.get(p.id); if(!o) return;
-  o.tx=p.x; o.tz=p.z; o.ty=p.y; o.tyaw=p.yaw; o.pitch=p.pitch; o.f=p.f; o.ghost=!!p.g; o.alive=!p.g; o.b=p.b; o.t=performance.now();
+  o.tx=p.x; o.tz=p.z; o.ty=p.y; o.tyaw=p.yaw; o.pitch=p.pitch; o.f=p.f; o.b=p.b; o.t=performance.now();
+  const wasAlive=o.alive; if(p.g) o.dead=true; o.ghost=!!o.dead; o.alive=!o.dead;
+  if(wasAlive && !o.alive) mpCheckAllDead();
   if(!o.seen){ o.x=p.x; o.z=p.z; o.y=p.y; o.yaw=p.yaw; o.seen=true; }
 }
 function mpOnStart(p){ mpBeginRound(); }
@@ -1460,7 +1463,7 @@ function mpOnCell(p){
 }
 function mpOnDead(p){
   const o=MP.others.get(p.id); if(!o) return;
-  o.alive=false; o.ghost=true;
+  o.alive=false; o.ghost=true; o.dead=true;
   if(state==='play'){ toast(`${o.name}'S LIGHT DIED`, true); sfx.scream && distantScream(o); }
   mpCheckAllDead();
 }
@@ -1489,7 +1492,7 @@ function mpStart(){ if(MP.id!==MP.hostId) return; mpSend('start', {}); mpBeginRo
 function mpBeginRound(){
   if(!assetsReady) return;
   MP.inRound=true;
-  for(const o of MP.others.values()){ o.alive=true; o.ghost=false; }
+  for(const o of MP.others.values()){ o.alive=true; o.ghost=false; o.dead=false; }
   $('mp').hidden=true;
   startGame();
   // stand side by side at the trailhead, in join order
