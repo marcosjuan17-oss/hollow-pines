@@ -111,6 +111,22 @@ button.ghost:hover{background:rgba(226,221,209,.14)}
 #runbtn.on{background:rgba(226,221,209,.22)}
 #pausebtn{position:absolute;right:12px;top:calc(env(safe-area-inset-top,0px) + 12px);pointer-events:auto;border-radius:4px;
   font-family:var(--font-hud);font-size:15px;background:rgba(5,6,10,.5);color:var(--bone);border:1px solid rgba(226,221,209,.15);min-width:48px;min-height:48px;padding:0 12px;touch-action:manipulation}
+#mpbar{position:absolute;z-index:10;top:calc(env(safe-area-inset-top,0px) + 150px);left:14px;min-width:170px;font-family:var(--font-hud);font-size:12px;line-height:1.6;letter-spacing:.06em;
+  background:rgba(5,6,10,.45);border:1px solid rgba(226,221,209,.1);border-radius:6px;padding:6px 12px;color:var(--ash)}
+#mpbar .row{display:flex;justify-content:space-between;gap:12px}
+#mpbar b{font-weight:500;color:var(--bone)} #mpbar b.gh{color:#8fb4ff}
+#whisperbtn{position:absolute;right:112px;bottom:calc(env(safe-area-inset-bottom,0px) + 62px);pointer-events:auto;border-radius:30px;padding:12px 16px;
+  font-family:var(--font-hud);font-size:12px;letter-spacing:.2em;background:rgba(80,110,180,.25);color:#cfe0ff;border:1px solid rgba(160,190,255,.35)}
+.field{display:flex;flex-direction:column;gap:6px;align-items:stretch;width:min(320px,100%);text-align:left}
+.field label{font-family:var(--font-hud);font-size:11px;letter-spacing:.24em;color:var(--ash);text-transform:uppercase}
+.field input{font-family:var(--font-hud);font-size:18px;letter-spacing:.08em;color:var(--bone);background:rgba(226,221,209,.06);border:1px solid rgba(226,221,209,.25);border-radius:4px;padding:10px 12px}
+.field input:focus-visible{outline:2px solid var(--cell);outline-offset:2px}
+.joinrow{display:flex;gap:8px;width:min(320px,100%)} .joinrow input{flex:1;min-width:0;text-transform:uppercase}
+.code{font-family:var(--font-display);font-size:clamp(56px,16vw,96px);letter-spacing:.18em;color:var(--bone);line-height:1}
+#mplist{list-style:none;margin:0;padding:0;font-family:var(--font-hud);font-size:15px;color:var(--bone);display:flex;flex-direction:column;gap:4px;min-width:220px}
+#mplist span{font-size:10px;letter-spacing:.2em;color:var(--cell);margin-left:8px}
+.or{font-family:var(--font-hud);font-size:11px;letter-spacing:.3em;color:var(--ash)}
+.err{font-family:var(--font-hud);font-size:12px;color:var(--warn);min-height:1.2em;max-width:40ch}
 @media (prefers-reduced-motion: reduce){#hud.crit #batfill{animation:none}}
 </style>
 
@@ -125,14 +141,16 @@ button.ghost:hover{background:rgba(226,221,209,.14)}
     <div id="stam"><i id="stamfill"></i></div>
   </div>
   <div id="toast"></div>
+  <div id="mpbar" hidden></div>
 
   <div id="touchui" hidden>
     <div id="stick"><div id="knob"></div></div>
     <button id="runbtn" type="button">RUN</button>
     <button id="pausebtn" type="button">II</button>
+    <button id="whisperbtn" type="button" hidden>WHISPER</button>
   </div>
 
-  <div id="scare" hidden><img id="scareimg" alt="" src="assets/scare.jpg?v=bfcfa3b099"><div class="tint"></div></div>
+  <div id="scare" hidden><img id="scareimg" alt="" src="assets/scare.jpg?v=1f400ae84f"><div class="tint"></div></div>
 
   <div class="overlay" id="start">
     <div class="card">
@@ -147,6 +165,7 @@ button.ghost:hover{background:rgba(226,221,209,.14)}
         <span>ESC</span><span>pause</span>
       </div>
       <button class="go" id="startbtn" type="button" disabled>Loading the woods…</button>
+      <button class="ghost" id="mpbtn" type="button">Play with friends</button>
       <div class="btnrow">
         <button class="ghost" id="gfxbtn" type="button">Graphics: High</button>
         <button class="ghost sharebtn" type="button">Share with friends</button>
@@ -169,6 +188,30 @@ button.ghost:hover{background:rgba(226,221,209,.14)}
     </div>
   </div>
 
+  <div class="overlay" id="mp" hidden>
+    <div class="card" id="mpjoinstep">
+      <h1>Play with friends</h1>
+      <p>Up to 4 players. Everyone walks the same trail with their own flashlight. Batteries are first come, first served. If anyone reaches the cabin, you all escape.</p>
+      <div class="field"><label for="mpname">Your name</label><input id="mpname" maxlength="16" autocomplete="nickname"></div>
+      <button class="go" id="mpcreate" type="button">Create a room</button>
+      <div class="or">OR JOIN WITH A CODE</div>
+      <div class="joinrow"><input id="mpcodein" class="field" maxlength="4" placeholder="CODE" autocomplete="off" aria-label="Room code" style="font-family:var(--font-hud);font-size:18px;letter-spacing:.3em;color:var(--bone);background:rgba(226,221,209,.06);border:1px solid rgba(226,221,209,.25);border-radius:4px;padding:10px 12px"><button class="ghost" id="mpjoin" type="button">Join</button></div>
+      <div class="err" id="mperr"></div>
+      <button class="ghost" id="mpback" type="button">Back</button>
+    </div>
+    <div class="card" id="mplobby" hidden>
+      <div class="warnline" style="color:var(--ash)">Room code</div>
+      <div class="code" id="mpcode">----</div>
+      <button class="ghost" id="mpinvite" type="button">Invite friends</button>
+      <div class="sharemsg" id="mpinvitemsg"></div>
+      <ul id="mplist"></ul>
+      <p class="err" id="mpfull" hidden>This room is full (4 players). You can watch the lobby, but you won't be in the round.</p>
+      <button class="go" id="mpstart" type="button" hidden>Start the round</button>
+      <p id="mpwait">Waiting for the host to start…</p>
+      <button class="ghost" id="mpleave" type="button">Leave room</button>
+    </div>
+  </div>
+
   <div class="overlay" id="pause" hidden>
     <div class="card">
       <h1>Paused</h1>
@@ -179,8 +222,8 @@ button.ghost:hover{background:rgba(226,221,209,.14)}
 
   <div class="overlay" id="over" hidden>
     <div class="card">
-      <h1 class="red">The light died</h1>
-      <p>It was waiting in the dark the whole time.</p>
+      <h1 class="red" id="overTitle">The light died</h1>
+      <p id="overText">It was waiting in the dark the whole time.</p>
       <div class="stats" id="overstats"></div>
       <button class="go" id="retrybtn" type="button">Try again</button>
       <button class="ghost sharebtn" type="button">Dare a friend</button>
@@ -190,8 +233,8 @@ button.ghost:hover{background:rgba(226,221,209,.14)}
 
   <div class="overlay" id="win" hidden>
     <div class="card">
-      <h1>You made it out</h1>
-      <p>The cabin door slams shut behind you. Something scratches at it until dawn.</p>
+      <h1 id="winTitle">You made it out</h1>
+      <p id="winText">The cabin door slams shut behind you. Something scratches at it until dawn.</p>
       <div class="stats" id="winstats"></div>
       <button class="go" id="againbtn" type="button">Play again</button>
       <button class="ghost sharebtn" type="button">Share your escape</button>
@@ -216,7 +259,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const $ = id => document.getElementById(id);
-const AV = '?v=bfcfa3b099'; // asset version tag, filled in when the site is built
+const AV = '?v=1f400ae84f'; // asset version tag, filled in when the site is built
 const rand = (a,b) => a + Math.random()*(b-a);
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 const smooth = (a,b,x) => { const t = clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
@@ -245,7 +288,8 @@ const camera = new THREE.PerspectiveCamera(68, 1, 0.03, 90);
 camera.rotation.order = 'YXZ';
 scene.add(camera);
 
-scene.add(new THREE.HemisphereLight(0x3a4a78, 0x0a0a08, 0.18));
+const hemi = new THREE.HemisphereLight(0x3a4a78, 0x0a0a08, 0.18); scene.add(hemi);
+function ghostHemi(on){ hemi.intensity = on ? 1.1 : 0.18; }
 const moon = new THREE.DirectionalLight(0x8090c0, 0.12);
 moon.position.set(-40, 70, -120); scene.add(moon);
 
@@ -352,11 +396,11 @@ const spill = new THREE.PointLight(0xffe2b8, 0.25, 1.4, 2); spill.position.set(0
 
 /* volumetric beam */
 const beamUniforms = { uI:{value:1}, uLen:{value:BEAM_LEN} };
-(function beam(){
+function makeBeamMesh(u){
   const g=new THREE.CylinderGeometry(0.03, Math.tan(BEAM_ANGLE*0.92)*BEAM_LEN, BEAM_LEN, 40, 12, true);
   g.translate(0,-BEAM_LEN/2,0); g.rotateX(Math.PI/2);
   const m=new THREE.ShaderMaterial({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide, fog:false,
-    uniforms: beamUniforms,
+    uniforms: u,
     vertexShader:`varying float vAlong; varying vec3 vN; varying vec3 vV;
       uniform float uLen;
       void main(){ vAlong = -position.z/uLen; vec4 mv = modelViewMatrix*vec4(position,1.); vV = normalize(-mv.xyz); vN = normalize(normalMatrix*normal); gl_Position = projectionMatrix*mv; }`,
@@ -364,8 +408,9 @@ const beamUniforms = { uI:{value:1}, uLen:{value:BEAM_LEN} };
       void main(){ float f = abs(dot(vN, vV)); float edge = pow(f, 2.2);
         float a = pow(1.0 - clamp(vAlong,0.,1.), 1.8) * smoothstep(0.0, 0.08, vAlong) * edge * 0.06 * uI;
         gl_FragColor = vec4(vec3(1.0,0.93,0.78)*a, a); }`});
-  const mesh=new THREE.Mesh(g,m); mesh.position.set(0,0,-0.15); mesh.frustumCulled=false; lightAnchor.add(mesh);
-})();
+  const mesh=new THREE.Mesh(g,m); mesh.frustumCulled=false; return mesh;
+}
+{ const mesh=makeBeamMesh(beamUniforms); mesh.position.set(0,0,-0.15); lightAnchor.add(mesh); }
 
 /* dust motes lit by the beam */
 const DUST = LOW ? 260 : 520;
@@ -724,9 +769,9 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(256,256), 0.55, 0.6, 0.82);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 const fx = new ShaderPass({
-  uniforms:{ tDiffuse:{value:null}, uTime:{value:0}, uRed:{value:0}, uGrain:{value:0.055}, uDark:{value:0} },
+  uniforms:{ tDiffuse:{value:null}, uTime:{value:0}, uRed:{value:0}, uGrain:{value:0.055}, uDark:{value:0}, uGhost:{value:0} },
   vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
-  fragmentShader:`uniform sampler2D tDiffuse; uniform float uTime,uRed,uGrain,uDark; varying vec2 vUv;
+  fragmentShader:`uniform sampler2D tDiffuse; uniform float uTime,uRed,uGrain,uDark,uGhost; varying vec2 vUv;
     float rnd(vec2 c){ return fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453); }
     void main(){ vec2 d=vUv-0.5; float r2=dot(d,d); float ca=0.006*r2;
       vec3 col=vec3(texture2D(tDiffuse,vUv+d*ca).r, texture2D(tDiffuse,vUv).g, texture2D(tDiffuse,vUv-d*ca).b);
@@ -734,6 +779,7 @@ const fx = new ShaderPass({
       col+=(rnd(vUv*vec2(1013.,577.)+fract(uTime))-0.5)*uGrain;
       col=mix(col, vec3(dot(col,vec3(0.6,0.25,0.15)),0.0,0.0)*1.4, uRed);
       col*=1.0-uDark;
+      float lum=dot(col,vec3(0.3,0.59,0.11)); col=mix(col, vec3(lum)*vec3(0.62,0.82,1.25)*1.9+vec3(0.0,0.01,0.025), uGhost);
       gl_FragColor=vec4(col,1.); }`
 });
 composer.addPass(fx);
@@ -945,7 +991,7 @@ function resetGame(){
   stalkerT=rand(13,18); stalkerLife=0; if(creature) creature.visible=false; dyingT=0; scareT=0; redFlash=0;
   cells.forEach(c=>{ c.visible=true; c.userData.taken=false; });
   triggerSigns.forEach(t=>t.done=false); followSteps=0; behindMode=false; vanishT=0; whisperT=rand(18,30); musicT=rand(35,60); setPresence(0,0);
-  fx.uniforms.uRed.value=0; fx.uniforms.uDark.value=0;
+  fx.uniforms.uRed.value=0; fx.uniforms.uDark.value=0; if(typeof ghostOff==='function') ghostOff();
   if(droneGain) droneGain.gain.value=0.04;
 }
 function startGame(){
@@ -958,9 +1004,9 @@ function startGame(){
 }
 function pauseGame(){ if(state!=='play') return; state='paused'; setPresence(0,0); $('pause').hidden=false; if(locked) document.exitPointerLock(); }
 function resume(){ $('pause').hidden=true; state='play'; initAudio(); tryLock(); last=performance.now(); }
-$('startbtn').addEventListener('click',startGame);
-$('retrybtn').addEventListener('click',startGame);
-$('againbtn').addEventListener('click',startGame);
+$('startbtn').addEventListener('click',()=>{ if(MP.on) mpLeave(); startGame(); });
+$('retrybtn').addEventListener('click',()=>{ if(MP.on) mpStart(); else startGame(); });
+$('againbtn').addEventListener('click',()=>{ if(MP.on) mpStart(); else startGame(); });
 $('resumebtn').addEventListener('click',resume);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) pauseGame(); });
 
@@ -1021,7 +1067,7 @@ function updateStalker(dt){
 }
 /* ---------------- dying / jumpscare ---------------- */
 const scareEl=$('scare'), scareImg=$('scareimg');
-function startDying(){ state='dying'; dyingT=0; battery=0; if(creature) creature.visible=false; setPresence(0.7,0); sfx.click(); sfx.breathe(); toast('BATTERY DEAD',true); }
+function startDying(){ if(MP.on && MP.inRound) mpSend('dead',{}); state='dying'; dyingT=0; battery=0; if(creature) creature.visible=false; setPresence(0.7,0); sfx.click(); sfx.breathe(); toast('BATTERY DEAD',true); }
 let flashOn=false;
 function updateDying(dt){
   const prev=dyingT; dyingT+=dt;
@@ -1047,17 +1093,24 @@ function updateDying(dt){
     const r=Math.random();
     scareImg.style.filter = r<0.12 ? 'invert(1) contrast(1.6)' : r<0.24 ? 'brightness(2.2) contrast(1.4) sepia(1) hue-rotate(-30deg) saturate(4)' : `contrast(${1.1+Math.random()*0.4}) brightness(${0.85+Math.random()*0.4})`;
     scareEl.style.opacity = Math.random()<0.06 ? 0.2 : 1;
-    if(scareT>1.6){ scareEl.hidden=true; if(creature) creature.visible=false; state='dead'; endScreen(false); }
+    if(scareT>1.6){ scareEl.hidden=true; if(creature) creature.visible=false; if(MP.on && MP.inRound){ becomeGhost(); } else { state='dead'; endScreen(false); } }
   }
 }
-function endScreen(won){
-  setPresence(0,0);
+function endScreen(won, who){
+  setPresence(0,0); if(typeof ghostOff==='function') ghostOff(); $('mpbar').hidden=true;
   if(locked) document.exitPointerLock();
   touchui.hidden=true;
   const d=Math.max(0,Math.round(Math.hypot(player.pos.x-DOOR.x,player.pos.z-DOOR.z)));
   const html=won
     ? `<div><span>TIME</span> ${fmtTime(elapsed)}</div><div><span>CELLS</span> ${taken}/${NUM_CELLS}</div><div><span>LIGHT LEFT</span> ${Math.round(battery)}%</div>`
     : `<div><span>TIME</span> ${fmtTime(elapsed)}</div><div><span>CELLS</span> ${taken}/${NUM_CELLS}</div><div><span>CABIN</span> ${d} m away</div>`;
+  const mpOn = MP.on;
+  $('winTitle').textContent = who ? `${who} made it out` : 'You made it out';
+  $('winText').textContent = mpOn ? (who ? `${who} reached the cabin and held the door. Everyone still breathing got inside.` : 'You reached the cabin and held the door for the others.') : 'The cabin door slams shut behind you. Something scratches at it until dawn.';
+  $('overTitle').textContent = mpOn ? "Everyone's light died" : 'The light died';
+  $('overText').textContent = mpOn ? 'Nobody made it to the cabin. It took all of you.' : 'It was waiting in the dark the whole time.';
+  const isHost = !mpOn || MP.id===MP.hostId;
+  for(const id of ['retrybtn','againbtn']){ const b=$(id); b.disabled = !isHost; b.textContent = isHost ? (id==='retrybtn'?'Try again':'Play again') : 'Waiting for host…'; }
   if(won){ $('winstats').innerHTML=html; $('win').hidden=false; }
   else { $('overstats').innerHTML=html; $('over').hidden=false; fx.uniforms.uRed.value=0.6; }
   hudEl.hidden=true;
@@ -1117,29 +1170,28 @@ function update(dt){
       if(player.stepAcc>(running?2.3:1.75)){ player.stepAcc=0; sfx.step(running); lastStepAt=elapsed;
         if(followSteps>0){ followSteps--; setTimeout(()=>sfx.stepBehind(), running?190:290); } }
     }
-    battery-=DRAIN*dt;
-    if(battery<=0) startDying();
-    for(const c of cells){
+    if(!ghost){ battery-=DRAIN*dt; if(battery<=0) startDying(); }
+    if(!ghost) for(const c of cells){
       if(c.userData.taken) continue;
       if(Math.hypot(c.position.x-player.pos.x,c.position.z-player.pos.z)<1.5){
-        c.userData.taken=true; c.visible=false; taken++; battery=Math.min(100,battery+CELL_GAIN); sfx.pickup(); toast(`+${CELL_GAIN}% BATTERY`);
+        c.userData.taken=true; c.visible=false; taken++; battery=Math.min(100,battery+CELL_GAIN); sfx.pickup(); toast(`+${CELL_GAIN}% BATTERY`); if(MP.on && MP.inRound) mpSend('cell',{i:cells.indexOf(c)});
       }
     }
-    if(battery<25){ hbTimer-=dt; if(hbTimer<=0){ sfx.heart(); hbTimer=0.45+battery/25*0.7; } }
+    if(battery<25 && !ghost){ hbTimer-=dt; if(hbTimer<=0){ sfx.heart(); hbTimer=0.45+battery/25*0.7; } }
     twigTimer-=dt; if(twigTimer<=0){ sfx.twig(); twigTimer=rand(9,20); }
     // it keeps walking for one step after you stop
     if(followSteps>0 && len<0.05 && elapsed-lastStepAt>0.5){ followSteps=0; setTimeout(()=>sfx.stepBehind(), 650); }
     whisperT-=dt; if(whisperT<=0){ sfx.whisper(rand(-1,1), battery<30?1.2:0.8); whisperT=battery<30?rand(9,16):rand(18,34); }
     musicT-=dt; if(musicT<=0){ sfx.musicBox(); musicT=rand(45,80); }
     for(const ts of triggerSigns){
-      if(!ts.done && Math.hypot(ts.x-player.pos.x, ts.z-player.pos.z)<4){
+      if(!ghost && !ts.done && Math.hypot(ts.x-player.pos.x, ts.z-player.pos.z)<4){
         ts.done=true;
         setTimeout(()=>{ if(state!=='play') return; sfx.whisper(0,1.5); followSteps=3; setTimeout(()=>{ if(state==='play' && creature){ spawnStalker(false,true); } }, 900); }, 1200);
       }
     }
     if(droneGain) droneGain.gain.setTargetAtTime(0.035+0.11*(1-battery/100),AC.currentTime,0.6);
-    updateStalker(dt);
-    if(Math.hypot(player.pos.x-DOOR.x,player.pos.z-DOOR.z)<1.7){ state='won'; sfx.win(); endScreen(true); }
+    if(!ghost) updateStalker(dt);
+    if(!ghost && Math.hypot(player.pos.x-DOOR.x,player.pos.z-DOOR.z)<1.7){ if(MP.on && MP.inRound){ mpSend('win',{t:elapsed}); MP.inRound=false; } state='won'; sfx.win(); endScreen(true); }
   } else if(state==='dying'){
     updateDying(dt);
   }
@@ -1163,7 +1215,7 @@ function update(dt){
   let f;
   if(state==='dying'||state==='dead') f = flashOn ? 1 : 0;
   else if(state==='title') f = 1;
-  else f = lightFactor(battery);
+  else f = ghost ? 0 : lightFactor(battery);
   spot.intensity = 260*f; spot.distance = 18+28*Math.min(1, (state==='play'?battery:100)/45);
   spill.intensity = 0.25*f;
   beamUniforms.uI.value = f;
@@ -1215,6 +1267,7 @@ function update(dt){
     $('cells').textContent=`${taken}/${NUM_CELLS}`;
     $('stamfill').style.width=player.stamina+'%';
   } else if(state==='dying'){ $('batfill').style.width='0%'; $('batpct').textContent='0%'; hudEl.classList.add('crit'); }
+  if(MP.on) mpTick(dt);
   if(toastTimer>0){ toastTimer-=dt; if(toastTimer<=0) $('toast').classList.remove('show'); }
 }
 
@@ -1281,6 +1334,274 @@ if(!inFrame && 'serviceWorker' in navigator && location.protocol==='https:'){
   navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});
 }
 
+/* ---------------- multiplayer (co-op, up to 4) ---------------- */
+// Players meet in a Supabase Realtime channel named after the room code. Nothing is stored:
+// positions and events are broadcast live, and presence tracks who is in the room.
+const SB_URL = 'https://qhifymuwlhvxsfrctdpe.supabase.co';
+const SB_KEY = 'sb_publishable_QCUmNPIOr6gdVaDUKLSDQg_SmOzIe4K';
+const MAX_PLAYERS = 4;
+const MP = { on:false, client:null, ch:null, id:Math.random().toString(36).slice(2,10), name:'', code:'', hostId:'', inRound:false,
+  joinedAt:Date.now(), others:new Map(), lastSend:0, whisperCd:0, ready:false };
+let ghost = false;
+const avatarSlots = [];
+
+function mpLoadName(){
+  let n=''; try{ n=localStorage.getItem('hp_name')||''; }catch(e){}
+  if(!n){ n = ['Ranger','Scout','Drifter','Camper','Hiker','Wanderer'][Math.random()*6|0] + ' ' + (10+Math.random()*90|0); }
+  return n;
+}
+function roomCode(){ const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c=''; for(let i=0;i<4;i++) c+=A[Math.random()*A.length|0]; return c; }
+
+// ----- remote players: a dark figure with their own flashlight beam and a name tag -----
+function nameSprite(text){
+  const c=document.createElement('canvas'); c.width=256; c.height=64; const g=c.getContext('2d');
+  g.font='500 30px "IBM Plex Mono", monospace'; g.textAlign='center'; g.textBaseline='middle';
+  g.fillStyle='rgba(5,6,10,.55)'; const w=Math.min(250, g.measureText(text).width+24); g.fillRect(128-w/2,12,w,40);
+  g.fillStyle='#e2ddd1'; g.fillText(text,128,33);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(c), transparent:true, depthWrite:false }));
+  s.scale.set(1.1,0.275,1); return s;
+}
+function makeAvatar(){
+  const g=new THREE.Group();
+  const jacket=new THREE.MeshStandardMaterial({ color:0x262b33, roughness:0.9 });
+  const skinM=new THREE.MeshStandardMaterial({ color:0x9c7562, roughness:0.7 });
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.22,0.75,4,10), jacket); body.position.y=1.05; body.castShadow=true;
+  const legs=new THREE.Mesh(new THREE.CapsuleGeometry(0.17,0.55,4,8), new THREE.MeshStandardMaterial({ color:0x1a1c20, roughness:0.95 })); legs.position.y=0.45; legs.castShadow=true;
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.14,14,10), skinM); head.position.y=1.68; head.castShadow=true;
+  const hood=new THREE.Mesh(new THREE.SphereGeometry(0.16,14,10,0,Math.PI*2,0,Math.PI*0.6), jacket); hood.position.y=1.71; hood.rotation.x=-0.25;
+  const torchArm=new THREE.Group(); torchArm.position.set(0.22,1.35,0);
+  const torch=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.04,0.26,10), new THREE.MeshStandardMaterial({ color:0x111214, metalness:0.7, roughness:0.4 }));
+  torch.rotation.x=Math.PI/2; torch.position.z=-0.2; torchArm.add(torch);
+  const lensM=new THREE.MeshBasicMaterial({ color:0xfff1d6 });
+  const lens=new THREE.Mesh(new THREE.CircleGeometry(0.035,12), lensM); lens.position.z=-0.335; lens.rotation.y=Math.PI; torchArm.add(lens);
+  const sl=new THREE.SpotLight(0xfff1d6, 0, 36, BEAM_ANGLE, 0.45, 2); sl.position.set(0,0,-0.34);
+  const tgt=new THREE.Object3D(); tgt.position.set(0,-0.4,-10); torchArm.add(sl, tgt); sl.target=tgt;
+  const bu={ uI:{value:1}, uLen:{value:BEAM_LEN} };
+  const beam=makeBeamMesh(bu); beam.position.z=-0.34; torchArm.add(beam);
+  const tag=nameSprite(''); tag.position.y=2.15;
+  g.add(body, legs, head, hood, torchArm, tag);
+  g.visible=false; scene.add(g);
+  return { g, torchArm, sl, bu, lensM, tag, id:null, body };
+}
+function setTag(slot, text){ slot.g.remove(slot.tag); slot.tag.material.map.dispose(); slot.tag=nameSprite(text); slot.tag.position.y=2.15; slot.g.add(slot.tag); }
+function slotFor(id){
+  let s=avatarSlots.find(a=>a.id===id); if(s) return s;
+  s=avatarSlots.find(a=>a.id===null); if(!s) return null;
+  s.id=id; return s;
+}
+
+// ----- connection -----
+async function mpConnect(code){
+  if(!MP.client){
+    const mod = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm');
+    MP.client = mod.createClient(SB_URL, SB_KEY, { realtime:{ params:{ eventsPerSecond: 30 } } });
+  }
+  if(avatarSlots.length===0) for(let i=0;i<MAX_PLAYERS-1;i++) avatarSlots.push(makeAvatar());
+  if(MP.ch){ await MP.client.removeChannel(MP.ch); MP.ch=null; }
+  MP.code=code; MP.others.clear(); MP.joinedAt=Date.now();
+  avatarSlots.forEach(a=>{ a.id=null; a.g.visible=false; a.sl.intensity=0; });
+  const ch = MP.client.channel('hollow-pines-'+code, { config:{ broadcast:{ self:false }, presence:{ key:MP.id } } });
+  MP.ch = ch;
+  ch.on('presence', { event:'sync' }, mpSyncPresence);
+  ch.on('broadcast', { event:'st' }, ({payload})=>mpOnState(payload));
+  ch.on('broadcast', { event:'start' }, ({payload})=>mpOnStart(payload));
+  ch.on('broadcast', { event:'cell' }, ({payload})=>mpOnCell(payload));
+  ch.on('broadcast', { event:'dead' }, ({payload})=>mpOnDead(payload));
+  ch.on('broadcast', { event:'win' }, ({payload})=>mpOnWin(payload));
+  ch.on('broadcast', { event:'wh' }, ({payload})=>mpOnWhisper(payload));
+  await new Promise((ok, fail)=>{
+    const timer=setTimeout(()=>fail(new Error('timeout')), 12000);
+    ch.subscribe(async status=>{
+      if(status==='SUBSCRIBED'){ clearTimeout(timer); await ch.track({ id:MP.id, name:MP.name, at:MP.joinedAt }); ok(); }
+      else if(status==='CHANNEL_ERROR' || status==='TIMED_OUT'){ clearTimeout(timer); fail(new Error(status)); }
+    });
+  });
+  MP.on=true; MP.ready=true;
+}
+async function mpLeave(){
+  if(MP.ch){ try{ await MP.ch.untrack(); await MP.client.removeChannel(MP.ch); }catch(e){} }
+  MP.ch=null; MP.on=false; MP.inRound=false; MP.others.clear();
+  avatarSlots.forEach(a=>{ a.id=null; a.g.visible=false; a.sl.intensity=0; });
+  $('mpbar').hidden=true;
+}
+function mpSend(event, payload){ if(MP.ch) MP.ch.send({ type:'broadcast', event, payload:{ ...payload, id:MP.id } }); }
+
+// presence: who is here, who hosts (the earliest to arrive)
+function mpSyncPresence(){
+  const st=MP.ch.presenceState(); const list=[];
+  for(const k in st){ const m=st[k][0]; if(m) list.push(m); }
+  list.sort((a,b)=>a.at-b.at || (a.id<b.id?-1:1));
+  const room=list.slice(0, MAX_PLAYERS);
+  MP.hostId = room[0] ? room[0].id : MP.id;
+  const ids=new Set(room.map(p=>p.id));
+  for(const p of room){
+    if(p.id===MP.id) continue;
+    if(!MP.others.has(p.id)){ MP.others.set(p.id, { id:p.id, name:p.name, x:0,z:0,y:1.62,yaw:0,pitch:0,f:0,alive:true,ghost:false,t:0, tx:0,tz:0,tyaw:0 }); if(MP.inRound || state!=='title') toast(`${p.name} JOINED`); }
+    else MP.others.get(p.id).name=p.name;
+  }
+  for(const id of [...MP.others.keys()]){ if(!ids.has(id)){ const o=MP.others.get(id); toast(`${o.name} LEFT`); MP.others.delete(id); const s=avatarSlots.find(a=>a.id===id); if(s){ s.id=null; s.g.visible=false; s.sl.intensity=0; } } }
+  MP.full = !ids.has(MP.id);
+  for(const o of MP.others.values()){ const s=slotFor(o.id); if(s && s.lastName!==o.name){ setTag(s, o.name); s.lastName=o.name; } }
+  renderLobby(room);
+  if(MP.inRound) mpCheckAllDead();
+}
+
+// ----- incoming events -----
+function mpOnState(p){
+  const o=MP.others.get(p.id); if(!o) return;
+  o.tx=p.x; o.tz=p.z; o.ty=p.y; o.tyaw=p.yaw; o.pitch=p.pitch; o.f=p.f; o.ghost=!!p.g; o.alive=!p.g; o.b=p.b; o.t=performance.now();
+  if(!o.seen){ o.x=p.x; o.z=p.z; o.y=p.y; o.yaw=p.yaw; o.seen=true; }
+}
+function mpOnStart(p){ mpBeginRound(); }
+function mpOnCell(p){
+  const c=cells[p.i]; if(!c || c.userData.taken) return;
+  c.userData.taken=true; c.visible=false;
+  const o=MP.others.get(p.id); if(o && state==='play' && !ghost) toast(`${o.name} GRABBED A BATTERY`);
+}
+function mpOnDead(p){
+  const o=MP.others.get(p.id); if(!o) return;
+  o.alive=false; o.ghost=true;
+  if(state==='play'){ toast(`${o.name}'S LIGHT DIED`, true); sfx.scream && distantScream(o); }
+  mpCheckAllDead();
+}
+function mpOnWin(p){
+  if(!MP.inRound) return;
+  const o=MP.others.get(p.id);
+  MP.inRound=false; setPresence(0,0);
+  if(state==='dying'){ $('scare').hidden=true; }
+  state='won'; sfx.win(); endScreen(true, o ? o.name : 'Someone');
+}
+function mpOnWhisper(p){
+  if(p.to!==MP.id || state!=='play' || ghost) return;
+  const o=MP.others.get(p.id); let pan=0;
+  if(o){ const dx=o.x-player.pos.x, dz=o.z-player.pos.z; const fx_=-Math.sin(yaw), fz_=-Math.cos(yaw); pan=clamp((fx_*dz - fz_*dx)/Math.max(1,Math.hypot(dx,dz)), -1, 1)*-1; }
+  sfx.whisper(pan, 1.7);
+}
+function distantScream(o){
+  if(!AC) return; const t=AC.currentTime;
+  const s=AC.createBufferSource(); s.buffer=noiseBuf; const bf=AC.createBiquadFilter(); bf.type='bandpass'; bf.Q.value=3;
+  bf.frequency.setValueAtTime(900,t); bf.frequency.exponentialRampToValueAtTime(1800,t+0.3); bf.frequency.exponentialRampToValueAtTime(700,t+1.4);
+  const g=AC.createGain(); env(g,t,.05,.18,1.4); s.connect(bf); bf.connect(g); send(g,0.9); s.start(t); s.stop(t+1.6);
+}
+
+// ----- round flow -----
+function mpStart(){ if(MP.id!==MP.hostId) return; mpSend('start', {}); mpBeginRound(); }
+function mpBeginRound(){
+  if(!assetsReady) return;
+  MP.inRound=true;
+  for(const o of MP.others.values()){ o.alive=true; o.ghost=false; }
+  $('mp').hidden=true;
+  startGame();
+  // stand side by side at the trailhead, in join order
+  const order=[MP.id, ...[...MP.others.keys()]].sort();
+  const k=order.indexOf(MP.id);
+  player.pos.x=(k-(order.length-1)/2)*1.3;
+}
+function mpCheckAllDead(){
+  if(!MP.inRound) return;
+  const meDead = ghost || state==='dying' || state==='dead';
+  if(!meDead) return;
+  for(const o of MP.others.values()) if(o.alive) return;
+  if(state==='dying') return; // our own jumpscare finishes first, then we land here again
+  MP.inRound=false; state='dead'; ghostOff(); endScreen(false);
+}
+function becomeGhost(){
+  ghost=true; state='play'; battery=0;
+  ghostHemi(true); fx.uniforms.uGhost.value=1;
+  hudEl.hidden=false; touchui.hidden=!isTouch; $('whisperbtn').hidden=false;
+  toast(isTouch ? 'YOU ARE A GHOST · TAP WHISPER' : 'YOU ARE A GHOST · PRESS Q TO WHISPER', true);
+  mpCheckAllDead();
+}
+function ghostOff(){ ghost=false; ghostHemi(false); fx.uniforms.uGhost.value=0; $('whisperbtn').hidden=true; }
+function ghostWhisper(){
+  if(!ghost || MP.whisperCd>0) return;
+  let best=null, bd=1e9;
+  for(const o of MP.others.values()){ if(!o.alive) continue; const d=Math.hypot(o.x-player.pos.x,o.z-player.pos.z); if(d<bd){bd=d;best=o;} }
+  if(!best) return;
+  mpSend('wh', { to:best.id }); MP.whisperCd=4; toast(`YOU WHISPER TO ${best.name}`);
+}
+
+// ----- every frame -----
+const _v=new THREE.Vector3();
+function mpTick(dt){
+  MP.whisperCd=Math.max(0, MP.whisperCd-dt);
+  const now=performance.now();
+  if(MP.inRound && (state==='play'||state==='dying') && now-MP.lastSend>100){
+    MP.lastSend=now;
+    mpSend('st', { x:+player.pos.x.toFixed(2), z:+player.pos.z.toFixed(2), y:+player.pos.y.toFixed(2), yaw:+yaw.toFixed(3), pitch:+pitch.toFixed(3),
+      f:+(ghost?0:(state==='dying'?0:beamUniforms.uI.value)).toFixed(2), g:ghost?1:0, b:Math.round(battery) });
+  }
+  // smooth remote players toward their latest positions
+  for(const o of MP.others.values()){
+    const s=slotFor(o.id); if(!s) continue;
+    const k=Math.min(1, dt*10);
+    o.x+= (o.tx-o.x)*k; o.z+=(o.tz-o.z)*k; o.y=(o.ty||1.62);
+    let dy=o.tyaw-o.yaw; while(dy>Math.PI) dy-=Math.PI*2; while(dy<-Math.PI) dy+=Math.PI*2; o.yaw+=dy*k;
+    const stale = now-o.t > 4000;
+    const show = MP.inRound && o.seen && !o.ghost && !stale;
+    s.g.visible = show;
+    if(!show){ s.sl.intensity=0; continue; }
+    const moving=Math.hypot(o.tx-o.x,o.tz-o.z)>0.03;
+    s.g.position.set(o.x, o.y-1.62, o.z);
+    s.g.rotation.y=o.yaw;
+    s.body.position.y=1.05+(moving?Math.abs(Math.sin(now/160))*0.04:0);
+    s.torchArm.rotation.x=o.pitch*0.9;
+    const f=o.f||0;
+    s.sl.intensity=200*f; s.bu.uI.value=f*0.8; s.lensM.color.setScalar(0.2+0.8*f);
+  }
+  renderMpBar();
+}
+
+// ----- lobby UI -----
+function renderLobby(room){
+  const list=$('mplist'); if(!list) return;
+  list.innerHTML = room.map(p=>`<li>${escapeHtml(p.name)}${p.id===MP.hostId?' <span>HOST</span>':''}${p.id===MP.id?' <span>YOU</span>':''}</li>`).join('');
+  const isHost = MP.id===MP.hostId;
+  $('mpstart').hidden = !isHost; $('mpwait').hidden = isHost;
+  $('mpwait').textContent = MP.inRound ? 'A round is running. You will join the next one.' : 'Waiting for the host to start…';
+  $('mpfull').hidden = !MP.full;
+}
+function renderMpBar(){
+  const bar=$('mpbar'); if(!bar) return;
+  if(!MP.on || !MP.inRound || hudEl.hidden){ bar.hidden=true; return; }
+  bar.hidden=false;
+  const rows=[...MP.others.values()].map(o=>`<div class="row">${escapeHtml(o.name)} <b class="${o.alive?'':'gh'}">${o.alive?(o.b??100)+'%':'GHOST'}</b></div>`).join('');
+  if(bar.dataset.h!==rows){ bar.innerHTML=rows; bar.dataset.h=rows; }
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function showMp(step){
+  $('start').hidden=true; $('mp').hidden=false;
+  $('mpjoinstep').hidden = step!=='join'; $('mplobby').hidden = step!=='lobby';
+  if(step==='join'){ $('mpname').value = MP.name || mpLoadName(); $('mperr').textContent=''; }
+}
+async function doConnect(code){
+  const name=$('mpname').value.trim().slice(0,16) || mpLoadName();
+  MP.name=name; try{ localStorage.setItem('hp_name', name); }catch(e){}
+  $('mperr').textContent='Connecting…';
+  try{ initAudio(); await mpConnect(code); }
+  catch(e){ $('mperr').textContent = inFrame ? 'Multiplayer works in the app version of the game. Tap “Open the app version”.' : 'Could not connect. Check your internet and try again.'; return; }
+  $('mpcode').textContent=code; showMp('lobby');
+  try{ const u=new URL(location.href); u.searchParams.set('room', code); history.replaceState(null,'',u); }catch(e){}
+}
+$('mpbtn').addEventListener('click', ()=>showMp('join'));
+$('mpcreate').addEventListener('click', ()=>doConnect(roomCode()));
+$('mpjoin').addEventListener('click', ()=>{ const c=$('mpcodein').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,''); if(c.length!==4){ $('mperr').textContent='Room codes are 4 letters or numbers.'; return; } doConnect(c); });
+$('mpcodein').addEventListener('keydown', e=>{ if(e.key==='Enter') $('mpjoin').click(); });
+$('mpback').addEventListener('click', ()=>{ $('mp').hidden=true; $('start').hidden=false; });
+$('mpleave').addEventListener('click', async ()=>{ await mpLeave(); try{ const u=new URL(location.href); u.searchParams.delete('room'); history.replaceState(null,'',u); }catch(e){} $('mp').hidden=true; $('start').hidden=false; });
+$('mpstart').addEventListener('click', mpStart);
+$('mpinvite').addEventListener('click', async ()=>{
+  const link = `${SHARE_URL}?room=${MP.code}`;
+  const text = `Join my Hollow Pines room ${MP.code}. Bring headphones.`;
+  if(navigator.share && !inFrame){ try{ await navigator.share({ title:'Hollow Pines', text, url:link }); return; }catch(e){ if(e && e.name==='AbortError') return; } }
+  try{ await navigator.clipboard.writeText(`${text} ${link}`); $('mpinvitemsg').textContent='Invite link copied.'; }catch(e){ $('mpinvitemsg').textContent=link; }
+});
+$('whisperbtn').addEventListener('click', ghostWhisper);
+addEventListener('keydown', e=>{ if(e.code==='KeyQ') ghostWhisper(); });
+// opened from an invite link: go straight to joining that room
+{ const rc=new URLSearchParams(location.search).get('room'); if(rc && /^[A-Z0-9]{4}$/i.test(rc)){ MP.pendingRoom=rc.toUpperCase(); } }
+
 /* ---------------- boot ---------------- */
 // The model ships as JSON with its binary data as base64; rebuild a GLB in memory so nothing is fetched from data: URLs.
 async function loadModels(){
@@ -1301,7 +1622,10 @@ async function loadModels(){
   return new Promise((ok,fail)=> new GLTFLoader().parse(buf, 'assets/', ok, fail));
 }
 loadModels().then(gltf=>{
-  buildWorld(gltf);
+  // same forest layout on every device so friends share one world
+  const mr=Math.random; let sd=1337; Math.random=()=>{ sd|=0; sd=sd+0x6D2B79F5|0; let t=Math.imul(sd^sd>>>15,1|sd); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+  try{ buildWorld(gltf); } finally { Math.random=mr; }
+  if(MP.pendingRoom){ MP.name=mpLoadName(); showMp('join'); $('mpcodein').value=MP.pendingRoom; }
   player.pos.y = heightAt(0,7)+1.62;
   const b=$('startbtn'); b.disabled=false; b.textContent='Enter the woods';
 }).catch(err=>{ const b=$('startbtn'); b.textContent='Could not load the woods. Reload the page.'; console.error(err); });
