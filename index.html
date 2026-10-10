@@ -132,7 +132,7 @@ button.ghost:hover{background:rgba(226,221,209,.14)}
     <button id="pausebtn" type="button">II</button>
   </div>
 
-  <div id="scare" hidden><img id="scareimg" alt="" src="assets/scare.jpg"><div class="tint"></div></div>
+  <div id="scare" hidden><img id="scareimg" alt="" src="assets/scare.jpg?v=bfcfa3b099"><div class="tint"></div></div>
 
   <div class="overlay" id="start">
     <div class="card">
@@ -216,6 +216,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const $ = id => document.getElementById(id);
+const AV = '?v=bfcfa3b099'; // asset version tag, filled in when the site is built
 const rand = (a,b) => a + Math.random()*(b-a);
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 const smooth = (a,b,x) => { const t = clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
@@ -275,7 +276,7 @@ function heightAt(x,z,d){
 /* ---------------- loaders ---------------- */
 const texLoader = new THREE.TextureLoader();
 function tex(url, rep, srgb){
-  const t = texLoader.load(url);
+  const t = texLoader.load(url+AV);
   t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep);
   t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   if(srgb) t.colorSpace = THREE.SRGBColorSpace;
@@ -586,7 +587,7 @@ function buildWorld(gltf){
   cellLight = new THREE.PointLight(0x5cff86, 1.6, 4, 2); scene.add(cellLight);
 
   // ----- warning signs along the trail -----
-  const loadSignTex = url => { const t = texLoader.load(url); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
+  const loadSignTex = url => { const t = texLoader.load(url+AV); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
   const SIGNS = [[0.11,'sign_0'],[0.2,'sign_7'],[0.33,'sign_1'],[0.43,'sign_6'],[0.555,'sign_3',true],[0.65,'sign_2'],[0.77,'sign_4'],[0.925,'sign_5']];
   SIGNS.forEach(([t,name,trigger],i)=>{
     const p=curve.getPointAt(t), tg=curve.getTangentAt(t);
@@ -658,7 +659,7 @@ function buildWorld(gltf){
       let q=null, qd=1e9; for(const c of coarse){ const d=(c.x-best.x)**2+(c.z-best.z)**2; if(d<qd){qd=d;q=c;} }
       const dx=q.x-best.x, dz=q.z-best.z, dl=Math.hypot(dx,dz)||1;
       const r=0.2*best.s+0.018;
-      const m=new THREE.MeshStandardMaterial({ map: (()=>{ const t=texLoader.load(`assets/poster_${i%3}.jpg`); t.colorSpace=THREE.SRGBColorSpace; return t; })(), roughness:0.95, side:THREE.DoubleSide });
+      const m=new THREE.MeshStandardMaterial({ map: (()=>{ const t=texLoader.load(`assets/poster_${i%3}.jpg`+AV); t.colorSpace=THREE.SRGBColorSpace; return t; })(), roughness:0.95, side:THREE.DoubleSide });
       const mesh=new THREE.Mesh(pg,m);
       mesh.position.set(best.x+dx/dl*r, best.y+0.1+1.55, best.z+dz/dl*r);
       mesh.rotation.set(0, Math.atan2(dx,dz), rand(-.08,.08)); mesh.receiveShadow=true;
@@ -1274,12 +1275,16 @@ $('iosclose').addEventListener('click', ()=>{ $('iosHelp').hidden=true; });
 // inside the Claude viewer, offer the standalone app instead
 if(!SHARE_URL.startsWith('http')) document.querySelectorAll('.sharebtn').forEach(b=>b.hidden=true);
 if(inFrame && SHARE_URL.startsWith('http')){ const a=$('applink'); a.href=SHARE_URL; a.target='_blank'; a.rel='noopener'; a.textContent='Open the app version'; a.hidden=false; }
-if(!inFrame && 'serviceWorker' in navigator && location.protocol==='https:'){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+if(!inFrame && 'serviceWorker' in navigator && location.protocol==='https:'){
+  const hadController = !!navigator.serviceWorker.controller; let reloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{ if(hadController && !reloaded && state==='title'){ reloaded=true; location.reload(); } });
+  navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});
+}
 
 /* ---------------- boot ---------------- */
 // The model ships as JSON with its binary data as base64; rebuild a GLB in memory so nothing is fetched from data: URLs.
 async function loadModels(){
-  const res = await fetch('assets/hollow_pines.json');
+  const res = await fetch('assets/hollow_pines.json'+AV);
   if(!res.ok) throw new Error('model file '+res.status);
   const j = await res.json();
   const bin = Uint8Array.from(atob(j.x_bin), c=>c.charCodeAt(0));
