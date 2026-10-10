@@ -110,7 +110,7 @@ button.ghost:hover{background:rgba(226,221,209,.14)}
   pointer-events:auto;letter-spacing:.2em}
 #runbtn.on{background:rgba(226,221,209,.22)}
 #pausebtn{position:absolute;right:12px;top:calc(env(safe-area-inset-top,0px) + 12px);pointer-events:auto;border-radius:4px;
-  font-family:var(--font-hud);font-size:13px;background:rgba(5,6,10,.5);color:var(--bone);border:1px solid rgba(226,221,209,.15);padding:6px 12px}
+  font-family:var(--font-hud);font-size:15px;background:rgba(5,6,10,.5);color:var(--bone);border:1px solid rgba(226,221,209,.15);min-width:48px;min-height:48px;padding:0 12px;touch-action:manipulation}
 @media (prefers-reduced-motion: reduce){#hud.crit #batfill{animation:none}}
 </style>
 
@@ -776,6 +776,8 @@ function tryLock(){ if(isTouch) return; try{ const r=canvas.requestPointerLock()
 const touchui=$('touchui'), knob=$('knob'), stickEl=$('stick');
 function onTouchStart(e){
   if(state!=='play' && state!=='dying') return;
+  // let taps on buttons (pause, run) through so iOS still fires their click
+  if(e.target.closest && e.target.closest('button')) return;
   for(const t of e.changedTouches){
     if(t.target.closest && t.target.closest('button')) continue;
     if(t.clientX < innerWidth*0.45 && joy.id===null){
@@ -805,6 +807,7 @@ const runbtn=$('runbtn');
 runbtn.addEventListener('touchstart',e=>{ runTouch=true; runbtn.classList.add('on'); e.preventDefault(); },{passive:false});
 runbtn.addEventListener('touchend',()=>{ runTouch=false; runbtn.classList.remove('on'); });
 $('pausebtn').addEventListener('click',()=>{ if(state==='play') pauseGame(); });
+$('pausebtn').addEventListener('touchend',e=>{ e.preventDefault(); if(state==='play') pauseGame(); });
 if(isTouch) $('keys').innerHTML='<span>LEFT THUMB</span><span>walk</span><span>RIGHT THUMB</span><span>look around</span><span>RUN</span><span>hold to sprint</span>';
 
 /* ---------------- game state ---------------- */
@@ -946,7 +949,10 @@ function resize(){
   camera.aspect=w/h; camera.updateProjectionMatrix();
   // keep the hand in the lower-right at any aspect
   const a=camera.aspect;
-  rig.position.set(Math.min(0.19, 0.1+0.055*a), -0.165, -0.28);
+  // place the flashlight from the visible frustum so it stays on screen on tall phones too
+  const rz = 0.3, halfH = rz*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)), halfW = halfH*a;
+  rig.position.set(Math.min(0.19, halfW*0.55), -Math.min(0.165, halfH*0.72), -rz);
+  rig.scale.setScalar(a < 0.8 ? 0.68 : 1);
   dustUniforms.uScale.value = renderer.getPixelRatio()*h/700;
 }
 addEventListener('resize',resize); resize();
